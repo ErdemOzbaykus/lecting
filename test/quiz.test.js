@@ -183,19 +183,25 @@ test('build.js (EVREN): test üretimi başarısız olsa da build çökmez, notla
   m.close();
 });
 
-test('build.js (Claude yolu): sahte claude ham dosyayı yazar, doğrulanıp quiz.json olur, ham dosya silinir', async () => {
+test('build.js (Claude yolu): claude yalnızca geçici klasörü görür, ham test doğrulanıp quiz.json olur, fazlası alınmaz', async () => {
   const { root, dir } = fixture();
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'fakebin-'));
   fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const fs = require('fs');
+const fs = require('fs'), path = require('path');
+if (process.argv.includes('--add-dir') || !fs.existsSync('notes.md')) process.exit(3); // başka klasör izni yok, not kopyası cwd'de
 const f = /"([^"]+quiz\\.raw\\.json)"/.exec(process.argv[3])[1]; // gerçek claude yok: istemdeki yola yazar
+if (fs.realpathSync(path.dirname(f)) !== process.cwd()) process.exit(4); // macOS: /var -> /private/var
 fs.writeFileSync(f, ${JSON.stringify('```json\n' + JSON.stringify({ questions: require('./mock-evren').QUIZ_QS }) + '\n```')});
+fs.writeFileSync('notes.md', 'üzerine yazıldı'); fs.writeFileSync('fazla.txt', 'x'); // istenmeyen çıktılar konu klasörüne geçmemeli
 `, { mode: 0o755 });
   fs.writeFileSync(path.join(root, 'data/settings.json'), JSON.stringify({ provider: 'claude' }));
+  const before = fs.readFileSync(path.join(dir, 'notes.md'), 'utf8');
   const r = await run(process.execPath, [build], { PATH: bin, LECTING_ROOT: root }); // PATH yalnızca sahte claude: gerçeği bulunamaz
   assert.equal(r.code, 0, r.out);
   assert.equal(loadQuiz(dir).questions.length, 6, r.out);
-  assert.ok(!fs.existsSync(path.join(dir, 'quiz.raw.json')));
+  assert.ok(!fs.existsSync(path.join(dir, 'quiz.raw.json')) && !fs.existsSync(path.join(dir, 'fazla.txt')));
+  assert.equal(fs.readFileSync(path.join(dir, 'notes.md'), 'utf8'), before);
+  assert.deepEqual(fs.readdirSync(path.join(root, 'data/work')), []); // geçici klasör silinir
 });
 
 // --- Sunucu: konu detayında quiz, skor kaydı ---

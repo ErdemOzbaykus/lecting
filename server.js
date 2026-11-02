@@ -35,7 +35,8 @@ function serveFile(req, res, file) {
     const type = MIME[path.extname(file)] || 'application/octet-stream';
     const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || ''); // ses ileri/geri sarma için
     if (m) {
-      const start = m[1] ? +m[1] : 0, end = m[2] ? +m[2] : st.size - 1;
+      const start = m[1] ? +m[1] : Math.max(0, st.size - +m[2]), end = m[1] && m[2] ? Math.min(+m[2], st.size - 1) : st.size - 1; // "bytes=-N": son N bayt
+      if (!(m[1] || m[2]) || start > end) { res.writeHead(416, { 'content-range': `bytes */${st.size}` }); return res.end(); } // geçersiz aralık sunucuyu düşürmesin
       res.writeHead(206, { 'content-type': type, 'accept-ranges': 'bytes', 'content-range': `bytes ${start}-${end}/${st.size}`, 'content-length': end - start + 1 });
       return fs.createReadStream(file, { start, end }).pipe(res);
     }
