@@ -34,7 +34,7 @@ Kişisel her şey git dışında kalır: `.env`, `data/` (ders dosyaları, ayarl
 
 ## Teşekkür
 
-Not düzeni [LectNote](https://github.com/Berikai/lectnote)'tan alındı (Berikai ve LectNote katkıcıları, MIT). Notlar `lectures/<DERS>/<NN-konu>/notes.md` olarak yazılır; bu klasör LectNote'ta çalışma alanı olarak açılabilir, LectNote'un MCP sunucusuyla da okunabilir.
+Not düzeni [LectNote](https://github.com/Berikai/lectnote)'tan alındı (@Berkai ve LectNote katkıcıları, MIT). Notlar `lectures/<DERS>/<NN-konu>/notes.md` olarak yazılır; bu klasör LectNote'ta çalışma alanı olarak açılabilir, LectNote'un MCP sunucusuyla da okunabilir.
 
 ## Lisans
 
