@@ -224,10 +224,18 @@ function home() {
       <section aria-labelledby="ha"><h2 id="ha">Bekleyen ödevler</h2>
       ${pending.length ? `<ul class="plain">${pending.map(a => {
         const ms = new Date(a.due) - Date.now();
-        return `<li class="item"><span>${esc(a.title)}${a.course ? ` <span class="mut">· ${esc(a.course)}</span>` : ''}</span><span class="${ms < 864e5 ? 'late' : 'mut'}">${remain(ms)}</span></li>`;
+        return `<li class="item"><span><button class="linkbtn" data-asg="${esc(a.id)}" title="IEULearn'de giriş yapılmış aç">${esc(a.title)} ↗</button>${a.course ? ` <span class="mut">· ${esc(a.course)}</span>` : ''}</span><span class="${ms < 864e5 ? 'late' : 'mut'}">${remain(ms)}</span></li>`;
       }).join('')}</ul>` : '<p class="mut">Bekleyen ödev yok.</p>'}</section></aside></div>`);
   document.getElementById('start').onclick = () => open(readyQ, 0);
   app.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => open(readyQ, +b.dataset.q); });
+  app.querySelectorAll('[data-asg]').forEach(b => {
+    b.onclick = async () => {
+      b.disabled = true; toast('IEULearn açılıyor…');
+      const r = await fetch('/api/assignment-open', { method: 'POST', headers: HDR, body: JSON.stringify({ id: b.dataset.asg }) });
+      toast(r.ok ? 'IEULearn Chrome\'da açıldı.' : 'Açılamadı: ' + ((await r.json().catch(() => ({}))).error || r.status));
+      b.disabled = false;
+    };
+  });
   bindCards();
   if (st.sync?.state === 'running' || st.building) poll();
 }

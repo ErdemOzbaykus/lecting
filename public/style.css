@@ -50,6 +50,9 @@ button { font:inherit; color:var(--fg); background:var(--surface); border:1px so
 button:hover:not(:disabled) { border-color:var(--mut); }
 button:disabled { opacity:.45; cursor:default; }
 button.primary { background:var(--acc); color:var(--accfg); border-color:var(--acc); font-weight:600; }
+button.linkbtn { all:unset; cursor:pointer; color:var(--acc); text-decoration:underline; text-underline-offset:0.15em; }
+button.linkbtn:focus-visible { outline:2px solid var(--acc); outline-offset:2px; border-radius:0.25rem; }
+button.linkbtn:disabled { color:var(--mut); cursor:progress; }
 button.primary:hover:not(:disabled) { filter:brightness(1.08); }
 button.big { padding:0.75rem 1.75rem; min-height:3rem; font-size:1.0625rem; }
 button.sm { padding:0.25rem 0.75rem; min-height:2.125rem; font-size:0.875rem; }

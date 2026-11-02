@@ -7,6 +7,9 @@ const { ROOT, DATA, LEC, SRC, readJson, writeJson, topics, env, saveEnv } = requ
 const evren = require('./tools/evren');
 const { loadQuiz } = require('./lib/quiz');
 const yt = require('./lib/youtube');
+const learn = require('./lib/learn');
+const browser = require('./lib/browser');
+const { parseAssignments } = require('./lib/parse');
 
 const PORT = +process.env.PORT || 3100;
 const F = ['settings', 'progress', 'manifest', 'exams'].reduce((o, n) => ({ ...o, [n]: path.join(DATA, n + '.json') }), {});
@@ -110,6 +113,17 @@ function buildErrors() {
   return out;
 }
 
+// Ödevi IEULearn'de giriş yapılmış açar (lib/browser.js): sunucu Chrome'un kimliğiyle girer, çerezleri o profile koyar.
+async function openAssignment(id) {
+  const e = env();
+  if (!e.IEU_USER || !e.IEU_PASS) throw new Error('Okul hesabı girilmemiş (Ayarlar).');
+  const v = await browser.chrome(path.join(DATA, 'learn-chrome'));
+  const jar = await learn.loginLearn(e, v['User-Agent']);
+  const a = parseAssignments(await (await learn.assignmentsFragment(jar)).text(), learn.LEARN).find(x => x.id === id);
+  if (!a?.url) throw new Error('Bu ödev IEULearn listesinde bulunamadı.');
+  await browser.openWithCookies(v, a.url, jar.c);
+}
+
 async function api(req, res, u) {
   const p = u.pathname;
   if (p === '/api/state') return send(res, 200, state());
@@ -146,6 +160,10 @@ async function api(req, res, u) {
     writeJson(F.manifest, mf);
     startBuild(body.course);
     return send(res, 200, { ok: true });
+  }
+  if (p === '/api/assignment-open') {
+    try { await openAssignment(String(body.id)); return send(res, 200, { ok: true }); }
+    catch (e) { return send(res, 502, { error: e.message }); }
   }
   if (p === '/api/credentials') { // okul hesabı ve EVREN anahtarı yalnızca bu bilgisayarda .env'de tutulur, hiçbir yanıtta geri dönmez
     const { user, pass, evrenKey } = body, clean = s => typeof s === 'string' && s.trim() && !/[\r\n]/.test(s);

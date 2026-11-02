@@ -31,10 +31,13 @@ test('açıklamadaki dosya bağlantıları: tekrar ve dış site atlanır, ad ve
 const CARDS = `<article class="sa-card st-assign" data-sa-group="pending" data-sa-id="2471"> <a class="st-assign-link" href="x"> <span class="st-assign-date"><b>06</b> <small>Kas</small></span> <span class="st-assign-main"> <span class="st-assign-title"> Project Proposal Submission <span class="st-assign-group" title="Grup">Grup</span> </span> <span class="st-assign-meta"> <span class="st-assign-dot"></span> 2026-1 MCE 412 Otonom Robotik 1 <span class="st-assign-meta-sep">·</span> Son teslim 06 Kas 2026, 23:59 </span> </span> <span class="st-assign-chip">5 gün kaldı</span> </a> </article>
 <article class="sa-card st-assign" data-sa-group="submitted" data-sa-id="1954"> <a> <span class="st-assign-main"> <span class="st-assign-title">Lab 4</span> <span class="st-assign-meta"> 2026-1 MCE 350 Endüstriyel Gömülü Sistemler 1 · Son teslim 04 Eki 2026, 9:05 </span> </span> </a> </article>`;
 
-test('ödev kartları: durum, ders kodu, İstanbul saatiyle son teslim', () => {
-  const [a, b] = parseAssignments(CARDS);
-  assert.deepEqual(a, { id: '2471', status: 'pending', title: 'Project Proposal Submission', course: 'MCE412', due: '2026-11-06T23:59:00+03:00' });
-  assert.deepEqual([b.status, b.title, b.course, b.due], ['submitted', 'Lab 4', 'MCE350', '2026-10-04T09:05:00+03:00']);
+test('ödev kartları: durum, ders kodu, İstanbul saatiyle son teslim, sayfa bağlantısı', () => {
+  const O = 'https://learn.ieu.edu.tr';
+  const [a, b] = parseAssignments(CARDS, O);
+  assert.deepEqual(a, { url: O + '/x', id: '2471', status: 'pending', title: 'Project Proposal Submission', course: 'MCE412', due: '2026-11-06T23:59:00+03:00' });
+  assert.deepEqual([b.url, b.status, b.title, b.course, b.due], [null, 'submitted', 'Lab 4', 'MCE350', '2026-10-04T09:05:00+03:00']);
+  // başka siteye ya da javascript: adresine giden bağlantı alınmaz
+  for (const h of ['https://evil.example/a', 'javascript:alert(1)']) assert.equal(parseAssignments(CARDS.replace('href="x"', `href="${h}"`), O)[0].url, null);
 });
 
 test('csrf alanı okunur, yoksa hata verir', () => {

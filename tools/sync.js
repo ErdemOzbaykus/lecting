@@ -7,43 +7,16 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { ROOT, DATA, SRC, readJson, writeJson, env: loadEnv } = require('../lib/topics');
 const { field, parsePlan, parseLinks, parseAssignments, parseIcs } = require('../lib/parse');
+const { LEARN, Jar, req, loginLearn, assignmentsFragment } = require('../lib/learn');
 
-const LEARN = 'https://learn.ieu.edu.tr';
 const EXAM = 'https://analytics.ieu.edu.tr';
 const STATUS = path.join(DATA, 'sync-status.json');
 const status = (state, message = '') => writeJson(STATUS, { state, message, pid: process.pid, at: new Date().toISOString() });
 
-// Çerez kavanozu: giriş oturumu ve csrf belirteci aynı oturuma bağlı.
-class Jar {
-  constructor() { this.c = {}; }
-  take(res) { for (const l of res.headers.getSetCookie()) { const kv = l.split(';')[0], i = kv.indexOf('='); this.c[kv.slice(0, i).trim()] = kv.slice(i + 1); } }
-  get header() { return Object.entries(this.c).map(([k, v]) => `${k}=${v}`).join('; '); }
-}
-async function req(jar, url, opt = {}) {
-  for (let n = 0; n < 8; n++) {
-    const r = await fetch(url, { ...opt, redirect: 'manual', headers: { ...opt.headers, cookie: jar.header } });
-    jar.take(r);
-    const loc = r.headers.get('location');
-    if (r.status >= 300 && r.status < 400 && loc) { url = new URL(loc, url).href; opt = { headers: opt.headers }; continue; } // yönlendirme: GET
-    return r;
-  }
-  throw new Error('çok fazla yönlendirme: ' + url);
-}
-
-async function loginLearn({ IEU_USER, IEU_PASS }) {
-  const jar = new Jar();
-  const page = await (await req(jar, LEARN + '/login')).text();
-  const body = new URLSearchParams({ csrf_token: field(page, 'csrf_token'), email: IEU_USER, password: IEU_PASS, remember: '1' });
-  await req(jar, LEARN + '/login', { method: 'POST', body, headers: { origin: LEARN, referer: LEARN + '/login' } });
-  if (!/Derslerim/.test(await (await req(jar, LEARN + '/student')).text())) throw new Error('IEULearn girişi başarısız (EkoID veya şifre yanlış olabilir)');
-  return jar;
-}
-
 async function syncCourses(env, mf) {
   const jar = await loginLearn(env);
   let got = 0;
-  const frag = await req(jar, LEARN + '/student/assignments/overview-fragment', { headers: { 'x-requested-with': 'XMLHttpRequest' } });
-  mf.assignments = parseAssignments(await frag.text());
+  mf.assignments = parseAssignments(await (await assignmentsFragment(jar)).text(), LEARN);
   for (const [course, c] of Object.entries(mf.courses)) {
     const html = await (await req(jar, `${LEARN}/student/courses/${c.courseId}/overview/unit-plan`)).text();
     for (const f of parsePlan(html)) { // yeni dosya ekle; elle eklenenleri ve var olanları silme
