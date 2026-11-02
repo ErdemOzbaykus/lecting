@@ -1,0 +1,15 @@
+{
+  "name": "lecting",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sınav haftası çalışma masası: kaynaklar, Claude notları, sesli özet, program",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node tools/build.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "katex": "^0.16.47",
+    "markdown-it": "^14.3.3"
+  }
+}

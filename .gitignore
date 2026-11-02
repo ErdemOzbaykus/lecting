@@ -1,0 +1,8 @@
+.env
+node_modules/
+.DS_Store
+.superpowers/
+.remember/
+# kişisel veri: ders dosyaları, notlar, ayarlar, puanlar (telif ve gizlilik)
+data/
+lectures/
