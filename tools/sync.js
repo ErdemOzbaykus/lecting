@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { ROOT, DATA, SRC, readJson, writeJson, env: loadEnv } = require('../lib/topics');
-const { field, parsePlan, parseLinks, parseAssignments, parseIcs } = require('../lib/parse');
+const { field, parseCourses, parsePlan, parseLinks, parseAssignments, parseIcs } = require('../lib/parse');
 const { LEARN, Jar, req, loginLearn, assignmentsFragment } = require('../lib/learn');
 
 const EXAM = 'https://analytics.ieu.edu.tr';
@@ -16,8 +16,13 @@ const status = (state, message = '') => writeJson(STATUS, { state, message, pid:
 async function syncCourses(env, mf) {
   const jar = await loginLearn(env);
   let got = 0;
+  for (const d of parseCourses(jar.home || '')) {
+    const cur = mf.courses[d.course];
+    mf.courses[d.course] = { name: cur?.name || d.name, courseId: cur?.courseId || d.courseId, topics: cur?.topics || [] };
+  }
   mf.assignments = parseAssignments(await (await assignmentsFragment(jar)).text(), LEARN);
   for (const [course, c] of Object.entries(mf.courses)) {
+    if (!c.courseId) continue;
     const html = await (await req(jar, `${LEARN}/student/courses/${c.courseId}/overview/unit-plan`)).text();
     for (const f of parsePlan(html)) { // yeni dosya ekle; elle eklenenleri ve var olanları silme
       const has = c.topics.find(t => t.rid === f.id) || c.topics.find(t => t.title.toLowerCase() === f.title.trim().toLowerCase());
@@ -74,6 +79,8 @@ async function main() {
   catch (e) { failed = true; msgs.push('Dersler: ' + e.message); }
   try { msgs.push(`${await syncExams(env)} sınav`); }
   catch (e) { failed = true; msgs.push('Sınavlar: ' + e.message); }
+  for (const e of readJson(path.join(DATA, 'exams.json'), [])) mf.courses[e.course] ||= { name: e.course, topics: [] };
+  writeJson(path.join(DATA, 'manifest.json'), mf);
   status(failed ? 'error' : 'ok', msgs.join(' · '));
   const log = fs.openSync(path.join(DATA, 'build.log'), 'a');
   spawn(process.execPath, [path.join(ROOT, 'tools/build.js')], { detached: true, stdio: ['ignore', log, log] }).unref(); // notları üret

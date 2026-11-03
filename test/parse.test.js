@@ -1,6 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { field, parsePlan, parseLinks, parseAssignments, parseIcs } = require('../lib/parse');
+const { field, parseCourses, parsePlan, parseLinks, parseAssignments, parseIcs } = require('../lib/parse');
+
+const HOME = `<article class="dash-course" data-course-id="17660" data-course-status="ongoing" data-course-title="2026-1 MCE 306 Makine Tasarımının Temelleri 1"></article>
+<article class="dash-course" data-course-id="19382" data-course-status="ongoing" data-course-title="2026-1 MCE 310 Sistem Dinamiği ve Kontrol 0 - 1"></article>
+<article class="dash-course" data-course-id="19323" data-course-status="ongoing" data-course-title="MCE Staj4"></article>
+<article class="dash-course" data-course-id="11111" data-course-status="completed" data-course-title="2025-2 MCE 200 Eski Ders 1"></article>`;
+
+test('IEULearn öğrenci ana sayfası: dönem dersleri bulunur, şube numarası ve staj/eski ders ayıklanır', () => {
+  assert.deepEqual(parseCourses(HOME), [
+    { course: 'MCE306', name: 'Makine Tasarımının Temelleri', courseId: 17660 },
+    { course: 'MCE310', name: 'Sistem Dinamiği ve Kontrol', courseId: 19382 },
+  ]);
+});
 
 // Gerçek IEULearn çıktısından kısaltılmış örnek (MCE 350, Konu 1).
 const PLAN = `<li class="ovup-syl-item-wrap" data-sim-resource-id="74895" data-syl-kind="resource" data-syl-id="74895"><a class="ovup-syl-item" href="javascript:void(0)" data-rv-payload="{&quot;id&quot;:74895,&quot;title&quot;:&quot;01-MCE350-Introduction&quot;,&quot;type&quot;:&quot;pdf&quot;,&quot;file_ext&quot;:&quot;pdf&quot;,&quot;file_name&quot;:&quot;01-MCE350-Intro.pdf&quot;}"></a></li>
