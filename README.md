@@ -20,7 +20,7 @@ npm install
 npm start
 ```
 
-Uygulama `http://127.0.0.1:3100` adresinde açılır. Ayarlar ekranından okul hesabı ve EVREN anahtarı girilir; bunlar yalnızca bu bilgisayardaki `.env` dosyasına yazılır.
+Uygulama `http://127.0.0.1:3100` adresinde açılır. Ayarlar ekranından okul hesabı ve EVREN anahtarı girilir; bunlar yalnızca bu bilgisayardaki `.env` dosyasına yazılır. Notları üretmek için ya EVREN anahtarı ya da kurulu `claude` CLI (Claude Code) gerekir; ikisi de yoksa konu "üretilemedi" olur (nedeni konunun üzerine gelince görünür).
 
 Dersler `data/manifest.json` içinde tanımlanır (örnek: [manifest.example.json](manifest.example.json)). `courseId`, IEULearn'deki ders adresindeki sayıdır. "Eşitle" düğmesi konu listesini ve dosyaları siteden doldurur.
 

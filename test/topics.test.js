@@ -14,3 +14,12 @@ test('silinen (hidden) konu listeden çıkar, sonrakilerin kimliği değişmez',
   const ids = require('../lib/topics').topics().map(t => t.id);
   assert.deepStrictEqual(ids, ['TST100/01-bir', 'TST100/03-uc']);
 });
+
+test('temiz klonda data/ klasörü yoktur: topics.js yükleyince oluşturur (ayar kaydetme ve eşitleme buna yazar)', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lecting-'));
+  process.env.LECTING_ROOT = root;
+  delete require.cache[require.resolve('../lib/topics')];
+  const { DATA, writeJson } = require('../lib/topics');
+  writeJson(path.join(DATA, 'settings.json'), {}); // ENOENT atmamalı
+  assert.ok(fs.existsSync(path.join(root, 'data/settings.json')));
+});

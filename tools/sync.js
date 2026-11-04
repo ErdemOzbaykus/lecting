@@ -37,10 +37,17 @@ async function syncCourses(env, mf) {
     for (const t of c.topics.filter(t => t.rid || t.url)) {
       const dest = path.join(SRC, course, path.basename(t.file));
       if (fs.existsSync(dest)) continue;
-      const r = await req(jar, t.rid ? `${LEARN}/student/courses/${c.courseId}/resources/${t.rid}/download` : t.url);
-      if (!r.ok || (r.headers.get('content-type') || '').includes('text/html')) throw new Error(`indirilemedi: ${course} ${t.file} (${r.status})`);
+      let buf;
+      for (let n = 1; ; n++) { // bağlantı yarıda kopabilir ("terminated"): bir dosya yüzünden bütün ders eşitlemesi düşmesin
+        try {
+          const r = await req(jar, t.rid ? `${LEARN}/student/courses/${c.courseId}/resources/${t.rid}/download` : t.url);
+          if (!r.ok || (r.headers.get('content-type') || '').includes('text/html')) throw Object.assign(new Error(`indirilemedi: ${course} ${t.file} (${r.status})`), { final: true });
+          buf = Buffer.from(await r.arrayBuffer());
+          break;
+        } catch (e) { if (e.final) throw e; if (n >= 3) throw new Error(`indirilemedi: ${course} ${t.file} (${e.message})`); }
+      }
       fs.mkdirSync(path.dirname(dest), { recursive: true });
-      fs.writeFileSync(dest, Buffer.from(await r.arrayBuffer()));
+      fs.writeFileSync(dest, buf);
       got++;
     }
   }

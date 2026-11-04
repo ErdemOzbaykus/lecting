@@ -92,6 +92,7 @@ function ask(text, cwd) {
     p.stderr.on('data', d => { out += d; });
     const timer = setTimeout(() => p.kill(), 15 * 60e3);
     p.on('close', code => { clearTimeout(timer); resolve({ code, err: out.slice(-600) }); }); // Claude hatayı çıktıda söyler, çıkış kodu 0 olabilir
+    p.on('error', e => { clearTimeout(timer); resolve({ code: 127, err: e.code === 'ENOENT' ? "claude komutu bulunamadı: Claude Code'u kurun ya da Ayarlar'dan EVREN anahtarı girip EVREN'i seçin" : e.message }); }); // kurulu değilse süreç çökmesin
   });
 }
 

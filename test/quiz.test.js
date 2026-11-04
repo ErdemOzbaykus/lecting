@@ -228,3 +228,15 @@ test('sunucu: /api/topic quiz döner, /api/quiz-score doğrular ve data/quiz-sco
     assert.ok(!fs.existsSync(path.join(root, 'data/progress.json')));
   } finally { srv.kill(); }
 });
+
+test('build.js (Claude yolu): claude kurulu değilse build çökmez, konu "BAŞARISIZ" olur ve nedeni log\'da yazar', async () => {
+  const { root } = fixture();
+  fs.mkdirSync(path.join(root, 'data/sources/TST100'), { recursive: true });
+  fs.copyFileSync(path.join(__dirname, '../README.md'), path.join(root, 'data/sources/TST100/yok.pdf')); // içerik önemsiz: claude zaten çağrılamaz
+  fs.rmSync(path.join(root, 'lectures'), { recursive: true }); // notlar yok: üretilmeli
+  fs.writeFileSync(path.join(root, 'data/settings.json'), JSON.stringify({ provider: 'claude' }));
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'emptybin-')); // PATH'te claude yok
+  const r = await run(process.execPath, [build], { PATH: bin, LECTING_ROOT: root });
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /BAŞARISIZ: TST100\/01-ilk-konu .*claude.*bulunamadı/s);
+});
