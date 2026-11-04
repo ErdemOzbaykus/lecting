@@ -16,20 +16,7 @@ const P = { home: '<path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>', plus: '<pat
   print: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>', trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>', spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/>', sync: '<path d="M20 11a8 8 0 00-14-4M4 4v4h4M4 13a8 8 0 0014 4M20 20v-4h-4"/>', left: '<path d="M15 5l-7 7 7 7"/>', sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>', moon: '<path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/>', auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/>', side: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>' };
 const ico = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${P[n]}</svg>`;
 
-// $...$ ve $$...$$ KaTeX ile; markdown-it'e girmeden önce yer tutucuya alınır.
-function render(src, id, yt) {
-  const maths = [];
-  if (id) src = src.replace(/\]\(photos\//g, `](/lectures/${id}/photos/`); // notlardaki göreli görsel yolları
-  src = src.replace(/^[ \t]*\[\[GÖRSEL [\d:]+\]\][ \t]*$/gm, ''); // video karesi henüz çekilmediyse işaret görünmesin
-  src = src.replace(/\$\$([\s\S]+?)\$\$|\$([^\n$]+?)\$/g, (_, d, i) => { maths.push({ tex: (d || i).trim(), display: !!d }); return `@@M${maths.length - 1}@@`; });
-  // YouTube bölümünde "(12:34)" / "(1:02:34)" atıfları oynatıcıyı o ana sarar
-  if (YT_ID.test(yt || '')) src = src.replace(/\(([^()\n]*?\d{1,3}:\d{2}[^()\n]*)\)/g, (_, g) => '(' + g.replace(/\b(\d{1,3}):(\d{2})(?::(\d{2}))?\b/g,
-    (t, a, b, c) => `[${t}](#yt=${yt}&t=${c ? a * 3600 + b * 60 + +c : a * 60 + +b})`) + ')');
-  return md.render(src).replace(/@@M(\d+)@@/g, (_, n) => {
-    const m = maths[n];
-    try { return katex.renderToString(m.tex, { displayMode: m.display, throwOnError: false }); } catch { return esc(m.tex); }
-  });
-}
+const render = Render(md, katex, YT_ID); // render(src, id, yt, cards): cards=true yalnızca notlarda (formül kartı)
 const sections = notes => {
   const p = notes.split(/\n(?=## )/);
   if (p.length > 1 && !/\S/.test(p[0].replace(/^#[^\n]*\n?/, ''))) p.shift(); // sadece başlık satırı olan ilk parça
@@ -259,7 +246,7 @@ async function notebook(course, focusId) {
   const cap = `İçindekiler · ${ready}/${nb.chapters.length} konu hazır`;
   const body = nb.chapters.map((c, i) => !c.ready ? '' : `<section class="chapter" id="ch${i}">
     <div class="chtools noprint"><button class="sm" data-study="${esc(c.id)}">${ico('play')}Bu konuyu çalış</button>${c.audio ? `<audio controls preload="none" src="/lectures/${c.id}/summary.m4a"></audio>` : ''}${st.building ? '' : topicActs(c)}</div>
-    ${ytPlayer(c.youtube)}<div class="note">${render(c.notes, c.id, c.youtube)}</div>
+    ${ytPlayer(c.youtube)}<div class="note">${render(c.notes, c.id, c.youtube, true)}</div>
     ${c.questions.length ? `<h3>Kendini dene</h3>${c.questions.map(q => `<details><summary>${render(q.q).replace(/<\/?p>/g, '')}</summary>${render(q.a)}</details>`).join('')}` : ''}</section>`).join('');
   shell('notebook', `<div class="nbbar noprint"><details class="tocm"><summary>${esc(cap)}</summary>${links}</details>
     ${st.building ? '<span class="mut"><span class="sdot run"></span> Notlar üretiliyor…</span>' : nb.chapters.some(lacking) ? `<button class="primary" data-build="${esc(course)}">${ico('spark')}Eksikleri üret (${nb.chapters.filter(lacking).length})</button>` : ''}
@@ -291,9 +278,9 @@ function draw() {
   let body = '', primary = last ? 'Konuyu bitir' : 'Devam', wait = false;
   const audio = `/lectures/${t.id}/summary.m4a`;
   if (s.k === 'test') ({ body, primary, wait } = qzView());
-  else if (A) body = (t.audio ? `<audio controls preload="none" src="${audio}"></audio>` : '') + ytPlayer(t.youtube) + `<div class="note">${render(ses.secs[s.i], t.id, t.youtube)}</div>`;
+  else if (A) body = (t.audio ? `<audio controls preload="none" src="${audio}"></audio>` : '') + ytPlayer(t.youtube) + `<div class="note">${render(ses.secs[s.i], t.id, t.youtube, true)}</div>`;
   else if (s.k === 'listen') body = `<h2>Sesli özet</h2><audio controls autoplay src="${audio}"></audio><p class="mut">Yaklaşık 40 saniye. Bitince Devam.</p>`;
-  else if (s.k === 'read') body = ytPlayer(t.youtube) + `<div class="note">${render(t.notes, t.id, t.youtube)}</div>`;
+  else if (s.k === 'read') body = ytPlayer(t.youtube) + `<div class="note">${render(t.notes, t.id, t.youtube, true)}</div>`;
   else if (s.k === 'quiz') {
     const q = t.questions[ses.qi];
     body = `<h2>Soru ${ses.qi + 1} / ${t.questions.length}</h2><div class="note">${render(q.q)}</div>${ses.show ? `<div class="answer note">${render(q.a)}</div>` : ''}`;
