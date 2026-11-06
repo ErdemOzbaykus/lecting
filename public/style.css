@@ -214,7 +214,7 @@ input[type=number] { width:6rem; }
 .tocm summary { cursor:pointer; font-weight:600; min-height:2.625rem; display:flex; align-items:center; }
 .tocm .rchap { padding:0.5625rem 0.5rem; }
 .paper { position:relative; max-width:56.25rem; margin:0 auto; color:var(--ink); border-radius:0.375rem; padding:2rem 2.75rem 4rem 5.625rem; font:1.125rem/2rem var(--serif);
-  background:var(--paper) repeating-linear-gradient(to bottom, transparent 0 1.9375rem, var(--rule) 1.9375rem 2rem);
+  background:var(--paper) linear-gradient(to bottom, transparent 1.9375rem, var(--rule) 0) 0 0 / 100% 2rem; /* 2rem'lik karo tekrarlanır: tek dev gradyanı WebKit (Safari) yazdırmada siyah basıyordu */
   box-shadow:var(--shadow); }
 .paper::before { content:""; position:absolute; top:0; bottom:0; left:4.125rem; width:2px; background:var(--margin); }
 .paper::after { content:""; position:absolute; left:1.125rem; top:2.5rem; bottom:2.5rem; width:1.125rem; opacity:.95;
@@ -276,7 +276,7 @@ button.ib[data-del]:hover { color:var(--bad); }
   .side > section:first-child .exam { flex:0 0 15.625rem; margin:0; }
 }
 /* Telefon / dar: ray alt çubuğa dönüşür */
-@media (max-width: 760px) {
+@media screen and (max-width: 760px) { /* yalnızca ekran: yazdırma sayfası (~720 px) da bu genişlikte, telefon kuralları PDF'i bozuyordu */
   html { font-size:106.25%; } /* dokunmatik varsayılan 17 pt */
   .shell { grid-template-columns:minmax(0,1fr); }
   .railtg { display:none; }
@@ -314,7 +314,7 @@ button.ib[data-del]:hover { color:var(--bad); }
 main:focus { outline:none; }
 .genbar { flex-wrap:nowrap; } .genbar .gt { flex:1; min-width:0; } .genbar:has(button) { flex-wrap:wrap; }
 .monly { display:none; }
-@media (max-width: 760px) { .monly { display:inline-flex; } .shell .brand { padding-left:0; } }
+@media screen and (max-width: 760px) { .monly { display:inline-flex; } .shell .brand { padding-left:0; } }
 .railtg { position:fixed; top:.625rem; left:.625rem; z-index:6; }
 .shell .brand { padding-left:2.75rem; }
 .shell.noRail { grid-template-columns:minmax(0,1fr); }
@@ -344,7 +344,7 @@ button.danger { background:var(--bad); border-color:var(--bad); color:var(--accf
   body { background:#fff; color:#000; }
   .shell { display:block; }
   .stage { padding:0; }
-  .paper { box-shadow:none; max-width:none; padding:0 0 0 3.75rem; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .paper { box-shadow:none; max-width:none; padding:0 0 0 3.75rem; -webkit-box-decoration-break:clone; box-decoration-break:clone; /* çizgiler her sayfada metinle yeniden hizalansın */ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .paper::before { left:2.625rem; }
   .paper::after { display:none; }
   .chapter { break-before:page; }
