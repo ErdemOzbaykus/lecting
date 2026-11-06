@@ -25,9 +25,11 @@ test('folderFrom: yönlendirmedeki ders klasörü; parseSessions: yalnızca geç
   assert.deepEqual(s, [{ id: ID, title: 'Hafta 3', start: '2024-08-25T10:50:14.866Z', minutes: 45, captions: true }]);
 });
 
-test('render: Panopto notundaki zaman atfı kayda bağlanır', () => {
-  assert.match(render('Devre (12:34).', 't', ID, true), new RegExp(`href="#pn=${ID}&amp;t=754"`));
-  assert.doesNotMatch(render('Devre (12:34).', 't', '', true), /href=/);
+test('render: (K1 12:34) atfı ilgili ders kaydına bağlanır, bilinmeyen kayıt düz kalır', () => {
+  const o = render('Devre (K1 12:34; s. 3). Diğer (K2 1:02:03).', 't', { K1: ID }, true);
+  assert.match(o, new RegExp(`href="#pn=${ID}&amp;t=754"`));
+  assert.match(o, /\(K2 1:02:03\)/);
+  assert.doesNotMatch(render('Devre (K1 12:34).', 't', '', true), /href=/);
 });
 
 test('ffHeaders: çerez yalnızca Panopto akışına, yalnızca https', () => {

@@ -6,6 +6,7 @@
   const fbox = (label, eq, note, plain) => `<div class="fbox" role="group"${label ? ` aria-label="${esc(plain)}"` : ''}><div>${label ? `<div class="flabel">${label}</div>` : ''}${eq}</div>${note ? `<div class="fnote">${note}</div>` : ''}</div>`;
   const bare = h => h.replace(/<\/?p>/g, '').trim();
   const PN_ID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/; // Panopto kaydı
+  const sec = (a, b, c) => c ? a * 3600 + b * 60 + +c : a * 60 + +b;
 
   // render(src, id, yt, cards): cards=true yalnızca notlarda; sorular/testte formül karta sarılmaz.
   return function make(md, katex, YT_ID) {
@@ -15,10 +16,15 @@
       src = src.replace(/^[ \t]*\[\[GÖRSEL [\d:]+\]\][ \t]*$/gm, ''); // video karesi henüz çekilmediyse işaret görünmesin
       // $...$ ve $$...$$ KaTeX ile; markdown-it'e girmeden önce yer tutucuya alınır.
       src = src.replace(/\$\$([\s\S]+?)\$\$|\$([^\n$]+?)\$/g, (_, d, i) => { maths.push({ tex: (d || i).trim(), display: !!d }); return `@@M${maths.length - 1}@@`; });
-      // Video bölümünde "(12:34)" / "(1:02:34)" atıfları oynatıcıyı (YouTube) ya da Panopto kaydını o ana sarar
-      const vid = YT_ID.test(yt || '') ? 'yt' : PN_ID.test(yt || '') ? 'pn' : null;
-      if (vid) src = src.replace(/\(([^()\n]*?\d{1,3}:\d{2}[^()\n]*)\)/g, (_, g) => '(' + g.replace(/\b(\d{1,3}):(\d{2})(?::(\d{2}))?\b/g,
-        (t, a, b, c) => `[${t}](#${vid}=${yt}&t=${c ? a * 3600 + b * 60 + +c : a * 60 + +b})`) + ')');
+      // YouTube bölümünde "(12:34)" / "(1:02:34)" atıfları oynatıcıyı o ana sarar
+      if (YT_ID.test(yt || '')) src = src.replace(/\(([^()\n]*?\d{1,3}:\d{2}[^()\n]*)\)/g, (_, g) => '(' + g.replace(/\b(\d{1,3}):(\d{2})(?::(\d{2}))?\b/g,
+        (t, a, b, c) => `[${t}](#yt=${yt}&t=${sec(a, b, c)})`) + ')');
+      // Panopto kaydının kendi notunda "(12:34)": kayıt o saniyede açılır
+      else if (PN_ID.test(yt || '')) src = src.replace(/\(([^()\n]*?\d{1,3}:\d{2}[^()\n]*)\)/g, (_, g) => '(' + g.replace(/\b(\d{1,3}):(\d{2})(?::(\d{2}))?\b/g,
+        (t, a, b, c) => `[${t}](#pn=${yt}&t=${sec(a, b, c)})`) + ')');
+      // Ders kaydına dayanan notta "(K1 12:34)": yt = { K1: Panopto kimliği }; kayıt o saniyede açılır
+      else if (yt && typeof yt === 'object') src = src.replace(/\(([^()\n]*?\bK\d+\s+\d{1,3}:\d{2}[^()\n]*)\)/g, (_, g) => '(' + g.replace(/\b(K\d+)\s+(\d{1,3}):(\d{2})(?::(\d{2}))?\b/g,
+        (t, k, a, b, c) => PN_ID.test(yt[k] || '') ? `[${t}](#pn=${yt[k]}&t=${sec(a, b, c)})` : t) + ')');
       // Claude çoğu zaman $$'ı önceki cümlenin hemen alt satırına yazar (aynı paragraf); satır yalnızca formülse kendi paragrafına ayır.
       if (cards) src = src.replace(/^@@M(\d+)@@[ \t]*$/gm, (l, n) => maths[n].display ? `\n${l}\n` : l);
       if (cards) src = src.replace(FORMUL, (_, title, body) => {

@@ -110,19 +110,25 @@ Kurallar:
 - Teknik terimleri İngilizce bırak, ilk geçtiği yerde Türkçesini parantez içinde ver.
 - ${first ? '"# Konu başlığı" ile başla, sonra' : 'Başlık yazma, doğrudan'} ${first ? '4-8' : '3-6'} adet "## Alt başlık" bölümü yaz. Her bölüm tek başına okunabilsin, 1-3 dakikada bitsin.
 - Formülleri KaTeX ile yaz: $...$ veya $$...$$. Kritik yerleri **kalın** yap.
-- Her bölümde dayandığın slaytı belirt: (s. 12) veya (s. 4, 6).
+- Her bölümde dayandığın slaytı belirt: (s. 12) veya (s. 4, 6).${t.lecture ? '\n- ' + LECTURE_RULE : ''}
 - Sınavda çıkabilecek noktaları bölüm sonunda "> **Sınav ipucu:** ..." satırıyla işaretle.
 - Metinde olmayan bilgi ekleme. Şema veya resim yüzünden anlaşılmayan yeri tahmin etme, atla.
 - Çıktı yalnızca Markdown olsun, başka açıklama yazma.
 
 --- SLAYT METNİ ---
-${text}`;
+${text}${t.lecture ? `\n\n--- HOCANIN DERS ANLATIMI (Panopto kaydından yazıya çevrildi) ---\n${t.lecture}` : ''}`;
 
 // Videoda gösterilen kritik görselin anı; tools/figures.js o saniyenin karesini notlara koyar.
+// Konuya eşleşen ders kaydı parçaları (lib/lectures.js) varsa not ona da dayanır; build.js'teki Claude istemi de kullanır.
+const LECTURE_RULE = 'Hocanın ders anlatımı da verildi ("== K1: ... ==" başlıklı, "[12:34]" damgalı; otomatik yazıya çevrildi, hata içerebilir). Slaytta olmayan açıklamaları, örnekleri ve hocanın vurguladığı noktaları ilgili bölüme ekle ve dayandığın anı (K1 12:34) biçiminde belirt. Anlatımın bu konuyla ilgisiz kısımlarını, yoklama ve duyuruları kullanma.';
+
 const YT_VISUAL = 'Konuşmacı ekranda kritik bir görsel gösterip ona atıf yapıyorsa (şema, devre, grafik, tablo, formül, kod; "burada gördüğünüz", "this diagram", "as you can see" gibi), o anın hemen ardına ayrı bir satırda yalnızca [[GÖRSEL 12:34]] yaz (o anın zaman damgası). Konu başına en fazla 8 tane; konuşmacının yüzü veya giriş ekranı için yazma.';
 
 // YouTube altyazısı için aynı kurallar; sayfa yerine "(12:34)" zaman damgası atfı.
-const ytNotesPrompt = (t, text, first) => `Ders: ${t.course} ${t.courseName}. Konu: ${t.title}.
+// Ders içeriği olmayan derste Panopto kaydı konu olur; adı (tarih) yerine model içeriğe göre başlık koyar, lib/topics.js konu adını ondan alır.
+const PN_TITLE = '"# " başlığı kaydın anlattığı konunun kısa adı olsun (en fazla 8 kelime); tarih, gün, "ders kaydı" ya da hafta numarası yazma.';
+
+const ytNotesPrompt = (t, text, first) => `Ders: ${t.course} ${t.courseName}. ${t.panopto ? 'Kaynak: hocanın ders kaydı.' : `Konu: ${t.title}.`}
 Aşağıda bir ders videosunun zaman damgalı altyazı metni var ("[12:34]" veya "[1:02:34]" ile işaretli; otomatik altyazı olabilir, yazım hataları içerebilir). Bundan Türkçe, anlaşılır bir ders notu yaz.
 
 Kurallar:
@@ -130,7 +136,7 @@ Kurallar:
 - ${first ? '"# Konu başlığı" ile başla, sonra' : 'Başlık yazma, doğrudan'} ${first ? '4-8' : '3-6'} adet "## Alt başlık" bölümü yaz. Her bölüm tek başına okunabilsin, 1-3 dakikada bitsin.
 - Formülleri KaTeX ile yaz: $...$ veya $$...$$. Kritik yerleri **kalın** yap.
 - Her bölümde dayandığın anı videodaki zaman damgasıyla belirt: (12:34) veya (1:02:34). Yalnızca bu biçim, "s." veya "dk" yazma.
-- ${YT_VISUAL}
+- ${YT_VISUAL}${t.panopto && first ? '\n- ' + PN_TITLE : ''}
 - Sınavda çıkabilecek noktaları bölüm sonunda "> **Sınav ipucu:** ..." satırıyla işaretle.
 - Metinde olmayan bilgi ekleme. Anlaşılmayan veya bozuk yeri tahmin etme, atla. Selamlaşma ve konu dışı sohbeti notlara alma.
 - Çıktı yalnızca Markdown olsun, başka açıklama yazma.
@@ -210,4 +216,4 @@ async function listModels(key) {
   return { ok: true, status: r.status, models: (j.data || []).map(m => m.id).slice(0, 30) };
 }
 
-module.exports = { chat, setStall, transcribe, speech, chunks, pack, parseTail, generate, generateYoutube, generateQuiz, listModels, YT_VISUAL };
+module.exports = { LECTURE_RULE, PN_TITLE, notesPrompt, ytNotesPrompt, chat, setStall, transcribe, speech, chunks, pack, parseTail, generate, generateYoutube, generateQuiz, listModels, YT_VISUAL };

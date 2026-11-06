@@ -35,10 +35,11 @@ async function syncCourses(env, mf) {
       if (has) has.url = has.url || f.url;
       else c.topics.push({ title: f.title, file: f.file_name, url: f.url });
     }
-    try { // Panopto ders kayıtları: hocanın anlatımı ayrı konu olur, build.js sesini yazıya çevirip not çıkarır
+    try { // Panopto ders kayıtları konu değil kaynak: build.js yazıya çevirir, parçalarını ilgili konuların notuna katar
       const { jar: pj, folderId } = await panopto.launch(jar, c.courseId);
-      for (const s of folderId ? await panopto.sessions(pj, folderId) : []) {
-        if (!c.topics.some(t => t.panopto === s.id)) c.topics.push({ title: 'Ders kaydı · ' + s.title, panopto: s.id });
+      c.recordings = folderId ? (await panopto.sessions(pj, folderId)).map(({ id, title, start, minutes }) => ({ id, title, start, minutes })) : [];
+      if (!c.topics.some(t => !t.hidden && t.file && !t.panopto && !t.youtube)) { // ders içeriği (slayt) yok: kayıt kendisi konu olur, adı notun başlığından gelir (lib/topics.js)
+        for (const r of c.recordings) if (!c.topics.some(t => t.panopto === r.id)) c.topics.push({ title: 'Ders kaydı · ' + r.title, panopto: r.id });
       }
     } catch (e) { console.log('Panopto atlandı:', course, e.message); } // Panopto yüzünden ders dosyaları eşitlemesi düşmesin
     for (const t of c.topics.filter(t => t.rid || t.url)) {

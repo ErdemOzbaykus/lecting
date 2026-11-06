@@ -76,7 +76,8 @@ function topicDetail(id) {
     q: (/^S:\s*([\s\S]*?)(?=^C:)/m.exec(b) || [])[1]?.trim(),
     a: (/^C:\s*([\s\S]*)$/m.exec(b) || [])[1]?.trim(),
   })).filter(x => x.q && x.a);
-  return { id: t.id, course: t.course, title: t.title, notes: read('notes.md'), questions, quiz: loadQuiz(dir), audio: t.audio, youtube: t.youtube, panopto: t.panopto };
+  let lectures = null; try { lectures = JSON.parse(read('lecture.json') || 'null'); } catch { /* yok */ } // { K1: Panopto kimliği } — notun dayandığı ders kayıtları
+  return { id: t.id, course: t.course, title: t.title, notes: read('notes.md'), questions, quiz: loadQuiz(dir), audio: t.audio, youtube: t.youtube, panopto: t.panopto, lectures };
 }
 
 // Ders başına tek defter: dersin hazır konularının notları sırayla, hazır olmayanlar yer tutucu.
