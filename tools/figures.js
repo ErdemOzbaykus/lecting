@@ -6,6 +6,7 @@ const path = require('path');
 const { execFileSync, execFile } = require('child_process');
 const { promisify } = require('util');
 const { canonical } = require('../lib/youtube');
+const panopto = require('../lib/panopto');
 const { LEC, topics } = require('../lib/topics');
 
 const PER_SECTION = 2, PER_TOPIC = 8;
@@ -27,7 +28,7 @@ const looksVisual = p => p && (p.imgs > 0 || (p.chars > 0 && p.chars < 250));
 
 function addFigures(t) {
   const file = path.join(LEC, t.id, 'notes.md');
-  if (t.youtube || !fs.existsSync(file) || !fs.existsSync(t.pdf)) return 0; // YouTube konusunda slayt yok
+  if (t.transcript || !fs.existsSync(file) || !fs.existsSync(t.pdf)) return 0; // video konusunda slayt yok
   const notes = fs.readFileSync(file, 'utf8');
   if (/\]\(photos\/p-\d+\.jpg\)/.test(notes)) return 0; // zaten eklenmiş
   const info = pageInfo(t.pdf);
@@ -50,12 +51,13 @@ function addFigures(t) {
 }
 
 // YouTube: notu yazan model, konuşmacının ekranda gösterdiği kritik görselin anını "[[GÖRSEL 12:34]]" satırıyla işaretler.
-// Video indirilmez: yt-dlp akış adresini verir, ffmpeg yalnızca o saniyenin karesini çeker. Çekilemeyen işaret satırı silinir.
+// Video indirilmez: yt-dlp (Panopto'da DeliveryInfo) akış adresini verir, ffmpeg yalnızca o saniyenin karesini çeker. Çekilemeyen işaret satırı silinir.
 const MARK = /^[ \t]*\[\[GÖRSEL (\d{1,3}):(\d{2})(?::(\d{2}))?\]\][ \t]*$/gm;
 const run = promisify(execFile);
-async function addVideoFigures(t) {
+// pj: Panopto konusunda Panopto oturumu (akış çerezle okunur).
+async function addVideoFigures(t, pj) {
   const file = path.join(LEC, t.id, 'notes.md');
-  if (!t.youtube || !fs.existsSync(file)) return 0;
+  if (!(t.youtube || (t.panopto && pj)) || !fs.existsSync(file)) return 0;
   const notes = fs.readFileSync(file, 'utf8');
   const secOf = m => m[3] ? +m[1] * 3600 + +m[2] * 60 + +m[3] : +m[1] * 60 + +m[2];
   const want = [];
@@ -64,13 +66,14 @@ async function addVideoFigures(t) {
   const got = new Set();
   try {
     if (want.length) {
-      const { stdout } = await run(process.env.YTDLP || 'yt-dlp', ['-g', '--no-playlist', '--no-warnings', '-f', 'bv*[height<=720][ext=mp4]/bv*[height<=720]/b', '--', canonical(t.youtube)], { timeout: 120000 });
-      const url = stdout.trim().split('\n')[0];
+      const url = t.panopto ? await panopto.streamUrl(pj, t.panopto)
+        : (await run(process.env.YTDLP || 'yt-dlp', ['-g', '--no-playlist', '--no-warnings', '-f', 'bv*[height<=720][ext=mp4]/bv*[height<=720]/b', '--', canonical(t.youtube)], { timeout: 120000 })).stdout.trim().split('\n')[0];
+      const pre = t.panopto ? panopto.ffHeaders(pj) : [];
       const dir = path.join(LEC, t.id, 'photos');
       fs.mkdirSync(dir, { recursive: true });
       for (const s of want) {
         try { // +1 sn: konuşmacı "bakın" dedikten sonra ekran oturmuş olur
-          await run(process.env.FFMPEG || 'ffmpeg', ['-v', 'error', '-y', '-ss', String(s + 1), '-i', url, '-frames:v', '1', '-vf', 'scale=min(1280\\,iw):-2', '-q:v', '4', path.join(dir, `v-${s}.jpg`)], { timeout: 90000 });
+          await run(process.env.FFMPEG || 'ffmpeg', ['-v', 'error', '-y', '-ss', String(s + 1), ...pre, '-i', url, '-frames:v', '1', '-vf', 'scale=min(1280\\,iw):-2', '-q:v', '4', path.join(dir, `v-${s}.jpg`)], { timeout: 90000 });
           if (fs.existsSync(path.join(dir, `v-${s}.jpg`))) got.add(s);
         } catch { /* bu kare olmadı, diğerleri sürsün */ }
       }

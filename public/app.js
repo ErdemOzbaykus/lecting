@@ -246,7 +246,7 @@ async function notebook(course, focusId) {
   const cap = `İçindekiler · ${ready}/${nb.chapters.length} konu hazır`;
   const body = nb.chapters.map((c, i) => !c.ready ? '' : `<section class="chapter" id="ch${i}">
     <div class="chtools noprint"><button class="sm" data-study="${esc(c.id)}">${ico('play')}Bu konuyu çalış</button>${c.audio ? `<audio controls preload="none" src="/lectures/${c.id}/summary.m4a"></audio>` : ''}${st.building ? '' : topicActs(c)}</div>
-    ${ytPlayer(c.youtube)}<div class="note">${render(c.notes, c.id, c.youtube, true)}</div>
+    ${ytPlayer(c.youtube)}<div class="note">${render(c.notes, c.id, c.youtube || c.panopto, true)}</div>
     ${c.questions.length ? `<h3>Kendini dene</h3>${c.questions.map(q => `<details><summary>${render(q.q).replace(/<\/?p>/g, '')}</summary>${render(q.a)}</details>`).join('')}` : ''}</section>`).join('');
   shell('notebook', `<div class="nbbar noprint"><details class="tocm"><summary>${esc(cap)}</summary>${links}</details>
     ${st.building ? '<span class="mut"><span class="sdot run"></span> Notlar üretiliyor…</span>' : nb.chapters.some(lacking) ? `<button class="primary" data-build="${esc(course)}">${ico('spark')}Eksikleri üret (${nb.chapters.filter(lacking).length})</button>` : ''}
@@ -278,9 +278,9 @@ function draw() {
   let body = '', primary = last ? 'Konuyu bitir' : 'Devam', wait = false;
   const audio = `/lectures/${t.id}/summary.m4a`;
   if (s.k === 'test') ({ body, primary, wait } = qzView());
-  else if (A) body = (t.audio ? `<audio controls preload="none" src="${audio}"></audio>` : '') + ytPlayer(t.youtube) + `<div class="note">${render(ses.secs[s.i], t.id, t.youtube, true)}</div>`;
+  else if (A) body = (t.audio ? `<audio controls preload="none" src="${audio}"></audio>` : '') + ytPlayer(t.youtube) + `<div class="note">${render(ses.secs[s.i], t.id, t.youtube || t.panopto, true)}</div>`;
   else if (s.k === 'listen') body = `<h2>Sesli özet</h2><audio controls autoplay src="${audio}"></audio><p class="mut">Yaklaşık 40 saniye. Bitince Devam.</p>`;
-  else if (s.k === 'read') body = ytPlayer(t.youtube) + `<div class="note">${render(t.notes, t.id, t.youtube, true)}</div>`;
+  else if (s.k === 'read') body = ytPlayer(t.youtube) + `<div class="note">${render(t.notes, t.id, t.youtube || t.panopto, true)}</div>`;
   else if (s.k === 'quiz') {
     const q = t.questions[ses.qi];
     body = `<h2>Soru ${ses.qi + 1} / ${t.questions.length}</h2><div class="note">${render(q.q)}</div>${ses.show ? `<div class="answer note">${render(q.a)}</div>` : ''}`;
@@ -467,6 +467,14 @@ function upload() {
 }
 
 // Not içindeki (mm:ss) bağlantısı: aynı bölümdeki oynatıcıyı o ana sarar, oynatıcı yoksa videoyu o saniyede açar.
+addEventListener('click', e => { // Panopto kaydı: okulun oynatıcısında o saniyeden açılır (Panopto'ya tarayıcıda giriş gerekebilir)
+  const a = e.target.closest('a[href^="#pn="]');
+  const [, id, t] = a && /^#pn=([0-9a-f-]{36})&t=(\d+)$/.exec(a.getAttribute('href')) || [];
+  if (!id) return;
+  e.preventDefault();
+  window.open(`https://panopto.ieu.edu.tr/Panopto/Pages/Viewer.aspx?id=${id}&start=${t}`, '_blank', 'noopener');
+});
+
 addEventListener('click', e => {
   const a = e.target.closest('a[href^="#yt="]');
   if (!a) return;

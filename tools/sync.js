@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const { ROOT, DATA, SRC, readJson, writeJson, env: loadEnv } = require('../lib/topics');
 const { field, parseCourses, parsePlan, parseLinks, parseAssignments, parseIcs } = require('../lib/parse');
 const { LEARN, Jar, req, loginLearn, assignmentsFragment } = require('../lib/learn');
+const panopto = require('../lib/panopto');
 
 const EXAM = 'https://analytics.ieu.edu.tr';
 const STATUS = path.join(DATA, 'sync-status.json');
@@ -34,6 +35,12 @@ async function syncCourses(env, mf) {
       if (has) has.url = has.url || f.url;
       else c.topics.push({ title: f.title, file: f.file_name, url: f.url });
     }
+    try { // Panopto ders kayıtları: hocanın anlatımı ayrı konu olur, build.js sesini yazıya çevirip not çıkarır
+      const { jar: pj, folderId } = await panopto.launch(jar, c.courseId);
+      for (const s of folderId ? await panopto.sessions(pj, folderId) : []) {
+        if (!c.topics.some(t => t.panopto === s.id)) c.topics.push({ title: 'Ders kaydı · ' + s.title, panopto: s.id });
+      }
+    } catch (e) { console.log('Panopto atlandı:', course, e.message); } // Panopto yüzünden ders dosyaları eşitlemesi düşmesin
     for (const t of c.topics.filter(t => t.rid || t.url)) {
       const dest = path.join(SRC, course, path.basename(t.file));
       if (fs.existsSync(dest)) continue;

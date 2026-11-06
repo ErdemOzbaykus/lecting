@@ -76,7 +76,7 @@ function topicDetail(id) {
     q: (/^S:\s*([\s\S]*?)(?=^C:)/m.exec(b) || [])[1]?.trim(),
     a: (/^C:\s*([\s\S]*)$/m.exec(b) || [])[1]?.trim(),
   })).filter(x => x.q && x.a);
-  return { id: t.id, course: t.course, title: t.title, notes: read('notes.md'), questions, quiz: loadQuiz(dir), audio: t.audio, youtube: t.youtube };
+  return { id: t.id, course: t.course, title: t.title, notes: read('notes.md'), questions, quiz: loadQuiz(dir), audio: t.audio, youtube: t.youtube, panopto: t.panopto };
 }
 
 // Ders başına tek defter: dersin hazır konularının notları sırayla, hazır olmayanlar yer tutucu.

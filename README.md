@@ -7,6 +7,7 @@ Sınav haftası için yerel çalışma masası. Ders dosyalarını okul sitesind
 - **Test:** Çoktan seçmeli, boşluk doldurma, doğru/yanlış ve eşleştirme soruları; skorlar konu bazında tutulur.
 - **Sesli özet:** EVREN TTS (`voxcpm2`), olmazsa macOS `say`.
 - **Video:** Altyazı yoksa ses EVREN ASR (`qwen3-asr-1.7b`) ya da yerel whisper.cpp ile yazıya çevrilir.
+- **Ders kayıtları (Panopto):** "Eşitle" her dersin Panopto kayıtlarını "Ders kaydı · …" konusu olarak ekler; hocanın anlatımı yazıya çevrilip zaman damgalı nota dönüşür, nottaki "(12:34)" kaydı o dakikada açar.
 - **Program:** Sınav tarihlerine ve günlük çalışma saatine göre konu planı.
 
 ## Kurulum
@@ -26,6 +27,14 @@ Dersler `data/manifest.json` içinde tanımlanır (örnek: [manifest.example.jso
 
 ```bash
 npm test
+```
+
+## Yapay zeka erişimi (MCP)
+
+IEULearn'i ve Panopto kayıtlarını yapay zekaya açan MCP sunucusu ayrı repoda: [ieulearn-mcp](https://github.com/ErdemOzbaykus/ieulearn-mcp). Lecting'le aynı hesabı ve kayıt metinlerini paylaşması için:
+
+```bash
+claude mcp add ieulearn -s user -e IEULEARN_ENV_FILE=/tam/yol/Lecting/.env -e IEULEARN_CACHE=/tam/yol/Lecting/data/sources -- node /tam/yol/ieulearn-mcp/index.js
 ```
 
 ## Veri
