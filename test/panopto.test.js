@@ -29,3 +29,10 @@ test('render: Panopto notundaki zaman atfı kayda bağlanır', () => {
   assert.match(render('Devre (12:34).', 't', ID, true), new RegExp(`href="#pn=${ID}&amp;t=754"`));
   assert.doesNotMatch(render('Devre (12:34).', 't', '', true), /href=/);
 });
+
+test('ffHeaders: çerez yalnızca Panopto akışına, yalnızca https', () => {
+  const pj = { header: 'a=1' };
+  assert.deepEqual(P.ffHeaders(pj, 'https://panopto.ieu.edu.tr/Panopto/Content/x.mp4'), ['-protocol_whitelist', 'https,tls,tcp,crypto', '-headers', 'Cookie: a=1\r\n']);
+  assert.deepEqual(P.ffHeaders(pj, 'https://cdn.example/x.mp4'), ['-protocol_whitelist', 'https,tls,tcp,crypto']);
+  assert.deepEqual(P.ffHeaders(pj, 'http://panopto.ieu.edu.tr/x.mp4'), ['-protocol_whitelist', 'https,tls,tcp,crypto']);
+});

@@ -68,7 +68,7 @@ async function addVideoFigures(t, pj) {
     if (want.length) {
       const url = t.panopto ? await panopto.streamUrl(pj, t.panopto)
         : (await run(process.env.YTDLP || 'yt-dlp', ['-g', '--no-playlist', '--no-warnings', '-f', 'bv*[height<=720][ext=mp4]/bv*[height<=720]/b', '--', canonical(t.youtube)], { timeout: 120000 })).stdout.trim().split('\n')[0];
-      const pre = t.panopto ? panopto.ffHeaders(pj) : [];
+      const pre = t.panopto ? panopto.ffHeaders(pj, url) : [];
       const dir = path.join(LEC, t.id, 'photos');
       fs.mkdirSync(dir, { recursive: true });
       for (const s of want) {
