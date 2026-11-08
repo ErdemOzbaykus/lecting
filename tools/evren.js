@@ -62,7 +62,7 @@ async function chat({ key, model, messages }) {
     const idle = new AbortController();
     let text;
     try {
-      text = await readChat(await request('/v1/chat/completions', key, { ...json({ model, messages, temperature: 0.2, stream: true }), signal: idle.signal }, 600000), idle);
+      text = await readChat(await request('/v1/chat/completions', key, { ...json({ model, messages, temperature: 0.2, stream: true }), signal: idle.signal }, 1800000), idle);
     } catch (e) {
       if (n < 2 && /durdu|yarıda/.test(e.message)) continue;
       throw e;
